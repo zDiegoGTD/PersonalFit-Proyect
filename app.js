@@ -8,7 +8,7 @@ let player = null;     // entrenamiento en curso
 let toolTimer = null;  // intervalos de contadores
 
 function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; } }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {} scheduleCloud(); }
 const pad = n => String(n).padStart(2,'0');
 const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const today = () => keyOf(new Date());
@@ -111,6 +111,7 @@ function renderOnboarding(){
     <label class="field">¿Cómo se llamará?
       <input id="petname" maxlength="16" placeholder="Ej. Rocky" value="${esc(ob.name)}" oninput="ob.name=this.value"></label>
     <button class="btn primary block" onclick="finishOnboarding()">Empezar mi aventura 🚀</button>
+    <button class="btn ghost block" onclick="restoreFromCode()">☁️ Ya tenía progreso: recuperarlo</button>
   </section>`;
 }
 function finishOnboarding(){
@@ -431,10 +432,7 @@ function renderProgress(){
   <h2>Logros</h2>
   <div class="ach">${ACHIEVEMENTS.map(a=>{const ok=a.t(st);return `<div class="${ok?'on':''}"><span>${ok?a.e:'🔒'}</span><b>${a.n}</b><small>${a.d}</small></div>`}).join('')}</div>
   ${notifCard()}
-  <h2>Respaldo</h2>
-  <p class="muted small">Tus datos se guardan solo en este celular. Descarga un respaldo de vez en cuando.</p>
-  <div class="row gap"><button class="btn ghost" onclick="exportData()">⬇️ Exportar</button>
-    <label class="btn ghost">⬆️ Importar<input type="file" accept="application/json" hidden onchange="importData(this)"></label></div>
+  ${cloudCard()}
   <button class="btn danger block" onclick="resetAll()">Borrar todo y empezar de cero</button>`;
 }
 function renamePet(){ const n = prompt('Nuevo nombre:', S.pet.name); if (n&&n.trim()){ S.pet.name=n.trim().slice(0,16); save(); syncPush(); render(); } }
@@ -601,3 +599,60 @@ function notifCard(){
   </div>`;
 }
 if (S) syncPush(); // al abrir la app, actualiza racha/último entreno en el servidor
+
+/* ========== Respaldo automático en la nube ========== */
+var BACKUP_URL = 'https://oqkprxynywejxhkftcjw.supabase.co/functions/v1/backup';
+var cloudT = null;
+function cloudInfo(){ try { return JSON.parse(localStorage.getItem('pf-cloud')) || {}; } catch { return {}; } }
+function scheduleCloud(){ if (!S) return; clearTimeout(cloudT); cloudT = setTimeout(cloudSave, 2500); }
+async function cloudSave(keepalive=false){
+  clearTimeout(cloudT); if (!S) return;
+  try {
+    const r = await fetch(BACKUP_URL, {method:'POST', keepalive, headers:{'Content-Type':'application/json'}, body:JSON.stringify({device_id:deviceId(), data:S})});
+    const ok = r.ok;
+    try { localStorage.setItem('pf-cloud', JSON.stringify({at:ok?Date.now():cloudInfo().at, err:!ok})); } catch {}
+  } catch { try { localStorage.setItem('pf-cloud', JSON.stringify({...cloudInfo(), err:true})); } catch {} }
+  if (tab==='progress' && !player && document.getElementById('cloudst')) document.getElementById('cloudst').innerHTML = cloudStatus();
+}
+document.addEventListener('visibilitychange', ()=>{ if (document.hidden && cloudT) cloudSave(true); });
+function cloudStatus(){
+  const c = cloudInfo();
+  if (c.err) return '⚠️ Sin conexión, se guardará cuando vuelva el internet';
+  if (!c.at) return '⏳ Guardando…';
+  const d = new Date(c.at);
+  return `✅ Guardado ${keyOf(d)===today()?'hoy':keyOf(d)} a las ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function cloudCard(){
+  return `<h2>Respaldo en la nube ☁️</h2>
+  <div class="card">
+    <p class="small muted" style="margin-top:0">Tu progreso se guarda solo, cada vez que haces algo. Si cambias de celular o se borra la app, recupéralo con este código.</p>
+    <p class="small" id="cloudst">${cloudStatus()}</p>
+    <div class="code">${deviceId().toUpperCase()}</div>
+    <div class="row gap"><button class="btn ghost" onclick="copyCode()">📋 Copiar código</button><button class="btn ghost" onclick="restoreFromCode()">⬇️ Recuperar</button></div>
+    <p class="small muted">Guárdalo en Notas o tómale captura. Es como tu contraseña: no lo compartas.</p>
+  </div>
+  <details class="ex"><summary>Más opciones</summary><div class="row gap" style="margin-top:10px"><button class="btn ghost" onclick="exportData()">⬇️ Exportar archivo</button>
+    <label class="btn ghost">⬆️ Importar archivo<input type="file" accept="application/json" hidden onchange="importData(this)"></label></div></details>`;
+}
+async function copyCode(){
+  try { await navigator.clipboard.writeText(deviceId().toUpperCase()); alert('Código copiado 📋 Guárdalo en tus Notas.'); }
+  catch { prompt('Copia tu código:', deviceId().toUpperCase()); }
+}
+async function restoreFromCode(){
+  const code = (prompt('Pega tu código de recuperación:') || '').trim().toLowerCase();
+  if (!code) return;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(code)) return alert('Ese código no es válido. Revisa que esté completo.');
+  try {
+    const r = await fetch(BACKUP_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({device_id:code, restore:true})});
+    if (r.status===404) return alert('No encontré progreso con ese código.');
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const {data} = await r.json();
+    if (S && !confirm('Esto reemplazará el progreso de este celular por el respaldo. ¿Continuar?')) return;
+    data.deviceId = code; S = data;
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
+    document.body.classList.remove('in-player'); tab='home'; render(); syncPush();
+    alert('¡Progreso recuperado! 🎉');
+  } catch(e){ alert('No se pudo recuperar: '+e.message); }
+}
+window.addEventListener('online', ()=>{ if (S) cloudSave(); });
+if (S) setTimeout(cloudSave, 1500); // respaldo al abrir la app

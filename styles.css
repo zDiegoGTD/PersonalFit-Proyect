@@ -131,3 +131,4 @@ input{width:100%;margin-top:6px;background:var(--card2);border:0;border-radius:1
 @keyframes twitch{0%,88%,100%{rotate:0deg}91%{rotate:12deg}94%{rotate:0deg}}
 .pet.sad .cat{filter:none}
 select{width:100%;margin-top:6px;background:var(--card2);border:0;border-radius:12px;padding:14px;font-size:1rem;color:var(--txt)}
+.code{font-family:ui-monospace,Menlo,monospace;background:var(--card2);border-radius:12px;padding:12px;font-size:.72rem;word-break:break-all;text-align:center;letter-spacing:.5px;margin:6px 0 10px;user-select:all}
