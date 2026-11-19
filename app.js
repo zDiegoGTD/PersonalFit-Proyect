@@ -52,7 +52,7 @@ function petMood(){
   const ago = lastWorkoutDaysAgo();
   return (ago >= 3 && ago !== 99) ? 'sad' : 'happy';
 }
-function petEmoji(){ return PETS[S.pet.type].stages[petStage()]; }
+function petEmoji(){ return petArt(); }
 function planWeek(){ return Math.min(8, Math.floor((new Date() - parseKey(S.created))/864e5/7) + 1); }
 function planLevel(){ const w = planWeek(); return w<=3?1 : w<=6?2 : 3; }
 function addXP(n){ const before = level(); S.xp += n; save(); return level() > before; }
@@ -100,13 +100,13 @@ function renderOnboarding(){
   document.body.classList.add('in-player');
   $app.innerHTML = `
   <section class="onb">
-    <div class="big-emoji bounce">${PETS[ob.type].stages[0]}</div>
+    <div class="big-emoji bounce">${petArt(0,'happy',ob.type)}</div>
     <h1>¡Bienvenido a PersonalFit!</h1>
     <p class="muted">Elige a tu compañero. Crecerá y evolucionará contigo mientras entrenas.</p>
     <div class="pet-grid">
       ${Object.entries(PETS).map(([k,p])=>`
         <button class="pet-opt ${ob.type===k?'sel':''}" onclick="ob.type='${k}';renderOnboarding()">
-          <span>${p.stages[0]}</span>${p.name}</button>`).join('')}
+          <span>${petArt(0,'happy',k)}</span>${p.name}</button>`).join('')}
     </div>
     <label class="field">¿Cómo se llamará?
       <input id="petname" maxlength="16" placeholder="Ej. Rocky" value="${esc(ob.name)}" oninput="ob.name=this.value"></label>
@@ -424,7 +424,7 @@ function renderProgress(){
   <div class="card"><div class="heat">${cells}</div><p class="muted small">Últimas 16 semanas · naranja = entrenaste · azul = comodín</p></div>
   <h2>Tu compañero</h2>
   <div class="card pet-info">
-    <div class="evo">${PETS[S.pet.type].stages.map((e,i)=>`<div class="${i<=petStage()?'':'locked'}"><span>${i<=petStage()?e:'❔'}</span><small>${STAGE_NAMES[i]}</small></div>`).join('<b>→</b>')}</div>
+    <div class="evo">${PETS[S.pet.type].stages.map((e,i)=>`<div class="${i<=petStage()?'':'locked'}"><span>${i<=petStage()?petArt(i,'happy'):'❔'}</span><small>${STAGE_NAMES[i]}</small></div>`).join('<b>→</b>')}</div>
     <p class="small">${nextStage?`${esc(S.pet.name)} evoluciona al llegar a <b>nivel ${nextStage}</b>.`:`¡${esc(S.pet.name)} alcanzó su forma épica! 👑`}</p>
     <button class="btn ghost" onclick="renamePet()">✏️ Cambiar nombre</button>
   </div>
@@ -480,4 +480,44 @@ function howTo(id){
   m.addEventListener('click', e => { if (e.target===m || e.target.closest('.btn')) close(); });
   document.body.appendChild(m);
   if (player) renderPlayer();
+}
+
+/* ========== Gatito dibujado (SVG animado) ========== */
+function catSVG(stage=0, mood='happy'){
+  const big = [0.82,0.9,1,1][stage];
+  const eyes = mood==='sad'
+    ? `<path d="M45 55q5 4 10 0M65 55q5 4 10 0" class="ln"/><path d="M47 60q-1 6 1 8" stroke="#6cc4ff" stroke-width="2.5" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0;1;0" dur="2.5s" repeatCount="indefinite"/></path>`
+    : mood==='done'
+    ? `<path d="M44 56q6-7 12 0M64 56q6-7 12 0" class="ln"/>`
+    : `<g class="blink"><ellipse cx="50" cy="55" rx="5" ry="6.5" fill="#2b2118"/><ellipse cx="70" cy="55" rx="5" ry="6.5" fill="#2b2118"/>
+       <circle cx="52" cy="52.5" r="1.8" fill="#fff"/><circle cx="72" cy="52.5" r="1.8" fill="#fff"/></g>`;
+  const mouth = mood==='sad' ? `<path d="M55 71q5-4 10 0" class="ln"/>` : `<path d="M54 67q3 4 6 0q3 4 6 0" class="ln"/>`;
+  const earTilt = mood==='sad' ? 18 : 0;
+  const acc = [
+    '',
+    `<path d="M40 84q20 9 40 0l-3 7q-17 7-34 0z" fill="#e63946"/><circle cx="60" cy="89" r="3" fill="#ffd166"/>`,
+    `<path d="M40 84q20 9 40 0l-3 7q-17 7-34 0z" fill="#3a86ff"/><path d="M36 38q24-12 48 0l-1 5q-23-11-46 0z" fill="#ff6b2c"/>`,
+    `<path d="M40 84q20 9 40 0l-3 7q-17 7-34 0z" fill="#8338ec"/><path d="M45 26l5 9 10-12 10 12 5-9 -2 14h-26z" fill="#ffd166" stroke="#e0a800" stroke-width="1.5"/><circle cx="60" cy="27" r="2.5" fill="#e63946"/>`,
+  ][stage];
+  return `<svg class="cat" viewBox="0 0 120 120" width="1em" height="1em" aria-label="Gatito">
+   <g transform="translate(60 112) scale(${big}) translate(-60 -112)">
+    <path class="tail" d="M84 100q22 0 20-24q-1-10 6-14" stroke="#f4a259" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <ellipse cx="60" cy="98" rx="27" ry="17" fill="#f4a259"/>
+    <ellipse cx="60" cy="101" rx="15" ry="11" fill="#ffe3c4"/>
+    <ellipse cx="46" cy="112" rx="8" ry="5" fill="#f4a259"/><ellipse cx="74" cy="112" rx="8" ry="5" fill="#f4a259"/>
+    <g transform="rotate(${-earTilt} 42 40)"><path d="M33 50l4-28 20 16z" fill="#f4a259"/><path d="M38 44l2-14 10 9z" fill="#ffb4a2"/></g>
+    <g transform="rotate(${earTilt} 78 40)"><path d="M87 50l-4-28-20 16z" fill="#f4a259"/><path d="M82 44l-2-14-10 9z" fill="#ffb4a2"/></g>
+    <circle cx="60" cy="60" r="27" fill="#f4a259"/>
+    <path d="M60 33v9M52 35l2 7M68 35l-2 7" stroke="#d9823b" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="60" cy="68" rx="13" ry="9" fill="#ffe3c4"/>
+    <circle cx="43" cy="66" r="4" fill="#ff9e9e" opacity=".55"/><circle cx="77" cy="66" r="4" fill="#ff9e9e" opacity=".55"/>
+    ${eyes}
+    <path d="M57 62h6l-3 3z" fill="#e5737a"/>
+    ${mouth}
+    <path d="M40 64h-12M40 68l-11 3M80 64h12M80 68l11 3" stroke="#7a5a3a" stroke-width="1.2" stroke-linecap="round"/>
+    ${acc}
+   </g></svg>`;
+}
+function petArt(stage=petStage(), mood=petMood(), type=S?.pet?.type){
+  return type==='cat' ? catSVG(stage, mood) : PETS[type].stages[stage];
 }

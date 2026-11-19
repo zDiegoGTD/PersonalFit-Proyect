@@ -120,3 +120,10 @@ input{width:100%;margin-top:6px;background:var(--card2);border:0;border-radius:1
 .sheet p{text-align:left;color:var(--muted)}.sheet h3{text-align:left}.sheet .demo{background:var(--card2)}
 .grab{width:40px;height:5px;border-radius:9px;background:var(--card2);margin:0 auto 6px}
 @keyframes fade{from{opacity:0}}@keyframes up{from{transform:translateY(100%)}}
+.cat{overflow:visible;vertical-align:middle}
+.cat .tail{transform-origin:84px 100px;animation:tail 1.6s ease-in-out infinite}
+@keyframes tail{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(10deg)}}
+.cat .blink{transform-origin:60px 55px;animation:blink 4s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.cat .ln{stroke:#2b2118;stroke-width:2.5;fill:none;stroke-linecap:round}
+.pet.sad .cat{filter:none}

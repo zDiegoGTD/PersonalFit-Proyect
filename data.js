@@ -41,7 +41,7 @@ const DAY_NAMES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','S
 
 const PETS = {
   dog:    {name:'Perrito', stages:['🐶','🐕','🦮','🐺']},
-  cat:    {name:'Gatito', stages:['🐱','🐈','🐈‍⬛','🐯']},
+  cat:    {name:'Gatito', stages:['😺','🐈','🐈‍⬛','🐯']},
   dragon: {name:'Dragón', stages:['🥚','🦎','🐲','🐉']},
   bear:   {name:'Osito', stages:['🧸','🐻','🐻‍❄️','🦁']},
 };
