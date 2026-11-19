@@ -183,7 +183,7 @@ function renderTrain(){
   <div class="card plan">${[1,2,3,4,5,6,0].map(d=>{const r=ROUTINES.find(x=>x.id===WEEK_PLAN[d]);
      return `<div class="row"><span>${DAY_NAMES[d]}</span><span>${r?r.emoji+' '+r.name:'😴 Descanso'}</span></div>`}).join('')}</div>
   <h2>Ejercicios</h2>
-  ${Object.values(EXERCISES).map(x=>`<details class="ex"><summary><span>${x.e}</span>${x.n}</summary><p>${x.d}</p></details>`).join('')}`;
+  ${Object.entries(EXERCISES).map(([id,x])=>`<details class="ex"><summary><span>${x.e}</span>${x.n}<b class="qbtn">?</b></summary>${demoSVG(id,'lg')}<p>${x.d}</p></details>`).join('')}`;
 }
 
 /* ========== Reproductor de entrenamiento ========== */
@@ -241,11 +241,11 @@ function renderPlayer(){
   const nx = upcomingEx();
   let main;
   if (s.kind==='ready') main = `<div class="p-label">¡Prepárate!</div><div class="p-ex">${EXERCISES[nx.ex].e} ${EXERCISES[nx.ex].n}</div><div class="p-time" id="ptime">${player.left}</div>`;
-  else if (s.kind==='rest') main = `<div class="p-label rest">${s.long?'Descanso entre rondas':'Descanso'}</div><div class="p-time" id="ptime">${fmt(player.left)}</div>${nx?`<div class="muted">Sigue: ${EXERCISES[nx.ex].e} ${EXERCISES[nx.ex].n}</div>`:''}`;
-  else if (s.kind==='time') main = `<div class="p-label">Ronda ${s.round+1}/${rounds}</div><div class="p-ex">${EXERCISES[s.ex].e} ${EXERCISES[s.ex].n}</div><div class="p-time" id="ptime">${fmt(player.left)}</div><p class="tip">${EXERCISES[s.ex].d}</p>`;
+  else if (s.kind==='rest') main = `<div class="p-label rest">${s.long?'Descanso entre rondas':'Descanso'}</div><div class="p-time" id="ptime">${fmt(player.left)}</div>${nx?`<div class="muted">Sigue: ${EXERCISES[nx.ex].e} ${EXERCISES[nx.ex].n}</div>${demoSVG(nx.ex,'sm')}<button class="howbtn" onclick="howTo('${nx.ex}')">❓ ¿Cómo se hace?</button>`:''}`;
+  else if (s.kind==='time') main = `<div class="p-label">Ronda ${s.round+1}/${rounds}</div><div class="p-ex">${EXERCISES[s.ex].e} ${EXERCISES[s.ex].n}</div>${demoSVG(s.ex)}<div class="p-time" id="ptime">${fmt(player.left)}</div><button class="howbtn" onclick="howTo('${s.ex}')">❓ ¿Cómo se hace?</button>`;
   else main = `<div class="p-label">Ronda ${s.round+1}/${rounds}</div><div class="p-ex">${EXERCISES[s.ex].e} ${EXERCISES[s.ex].n}</div>
       <button class="rep-tap" onclick="player.reps++;beep(700,40);vibe(20);renderPlayer()"><b>${player.reps}</b><small>de ${s.val} reps · toca para contar</small></button>
-      <p class="tip">${EXERCISES[s.ex].d}</p>`;
+      ${demoSVG(s.ex,'sm')}<button class="howbtn" onclick="howTo('${s.ex}')">❓ ¿Cómo se hace?</button>`;
   $app.innerHTML = `
   <section class="player ${s.kind}" style="--c:${r.color}">
     <div class="p-top"><button class="icon" onclick="quitWorkout()">✕</button><b>${r.emoji} ${r.name}</b><span>Nv ${player.lv}</span></div>
@@ -261,7 +261,7 @@ function renderPlayer(){
     <h3>Checklist</h3>
     <ul class="check">${r.items.map(([ex,type,vals],i)=>`
       <li class="${s.idx===i&&s.ex?'cur':''}"><span>${EXERCISES[ex].e} ${EXERCISES[ex].n} <small class="muted">${type==='time'?vals[player.lv-1]+'s':vals[player.lv-1]+' reps'}</small></span>
-      <span class="dots">${[...Array(rounds)].map((_,rd)=>`<i class="${player.done[rd+'-'+i]?'on':''}"></i>`).join('')}</span></li>`).join('')}
+      <span class="row"><button class="qbtn" onclick="howTo('${ex}')">?</button><span class="dots">${[...Array(rounds)].map((_,rd)=>`<i class="${player.done[rd+'-'+i]?'on':''}"></i>`).join('')}</span></span></li>`).join('')}
     </ul>
   </section>`;
 }
@@ -453,3 +453,31 @@ function resetAll(){ if (confirm('¿Seguro? Se borrará todo tu progreso.') && c
 document.addEventListener('visibilitychange', ()=>{ if (!document.hidden && player) keepAwake(true); });
 if ('serviceWorker' in navigator) window.addEventListener('load', ()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 render();
+
+/* ========== Demostración y "¿Cómo se hace?" ========== */
+function demoSVG(id, size=''){
+  const [A,B,prop] = DEMOS[id] || [STAND_F, STAND_F];
+  const vals = idx => { const a = idx.map(i=>A[i].join(',')).join(' '), b = idx.map(i=>B[i].join(',')).join(' '); return `${a};${b};${a}`; };
+  const anim = (attr, v) => `<animate attributeName="${attr}" values="${v}" dur="1.8s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.5;1" keySplines=".45 0 .55 1;.45 0 .55 1"/>`;
+  const line = idx => `<polyline points="${idx.map(i=>A[i].join(',')).join(' ')}">${anim('points', vals(idx))}</polyline>`;
+  const props = prop==='chair' ? '<path d="M18 58h22M22 58v37M36 58v37" class="prop"/>' : prop==='wall' ? '<path d="M28 5v90" class="prop"/>' : '';
+  return `<svg viewBox="0 0 100 100" class="demo ${size}" aria-label="Demostración">
+    <path d="M2 95.5h96" class="floor"/>${props}
+    <g class="fig">${line([2,1])}${line([2,3,4])}${line([2,5,6])}${line([1,7,8])}${line([1,9,10])}
+    <circle r="7" cx="${A[0][0]}" cy="${A[0][1]}">${anim('cx',`${A[0][0]};${B[0][0]};${A[0][0]}`)}${anim('cy',`${A[0][1]};${B[0][1]};${A[0][1]}`)}</circle></g></svg>`;
+}
+function howTo(id){
+  const x = EXERCISES[id];
+  const wasRunning = player && !player.paused;
+  if (wasRunning) player.paused = true;
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.innerHTML = `<div class="sheet"><div class="grab"></div>
+    <h2>${x.e} ${x.n}</h2>${demoSVG(id,'lg')}
+    <h3>¿Cómo se hace?</h3><p>${x.d}</p>
+    <button class="btn primary block">Entendido${wasRunning?' · seguir':''}</button></div>`;
+  const close = () => { m.remove(); if (wasRunning && player){ player.paused = false; renderPlayer(); } };
+  m.addEventListener('click', e => { if (e.target===m || e.target.closest('.btn')) close(); });
+  document.body.appendChild(m);
+  if (player) renderPlayer();
+}
