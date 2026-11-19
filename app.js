@@ -154,7 +154,7 @@ function renderHome(){
 }
 function useFreeze(){
   if (!confirm('Solo tienes 1 comodín por semana. ¿Usarlo hoy?')) return;
-  day(today()).freeze = true; save(); render();
+  day(today()).freeze = true; save(); syncPush(); render();
 }
 
 /* ========== Entrenar ========== */
@@ -279,7 +279,7 @@ function finishWorkout(){
   const before = new Set(S.ach||[]);
   S.ach = ACHIEVEMENTS.filter(a=>a.t(stats())).map(a=>a.id); save();
   const newAch = ACHIEVEMENTS.filter(a=>S.ach.includes(a.id) && !before.has(a.id));
-  const r = player.r; player = null;
+  const r = player.r; player = null; syncPush();
   beep(784,150); setTimeout(()=>beep(1047,300),160); vibe([100,50,100,50,300]);
   document.body.classList.remove('in-player');
   $app.innerHTML = `
@@ -430,13 +430,14 @@ function renderProgress(){
   </div>
   <h2>Logros</h2>
   <div class="ach">${ACHIEVEMENTS.map(a=>{const ok=a.t(st);return `<div class="${ok?'on':''}"><span>${ok?a.e:'🔒'}</span><b>${a.n}</b><small>${a.d}</small></div>`}).join('')}</div>
+  ${notifCard()}
   <h2>Respaldo</h2>
   <p class="muted small">Tus datos se guardan solo en este celular. Descarga un respaldo de vez en cuando.</p>
   <div class="row gap"><button class="btn ghost" onclick="exportData()">⬇️ Exportar</button>
     <label class="btn ghost">⬆️ Importar<input type="file" accept="application/json" hidden onchange="importData(this)"></label></div>
   <button class="btn danger block" onclick="resetAll()">Borrar todo y empezar de cero</button>`;
 }
-function renamePet(){ const n = prompt('Nuevo nombre:', S.pet.name); if (n&&n.trim()){ S.pet.name=n.trim().slice(0,16); save(); render(); } }
+function renamePet(){ const n = prompt('Nuevo nombre:', S.pet.name); if (n&&n.trim()){ S.pet.name=n.trim().slice(0,16); save(); syncPush(); render(); } }
 function exportData(){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));
@@ -545,3 +546,58 @@ function catSVG(stage=0, mood='happy'){
 function petArt(stage=petStage(), mood=petMood(), type=S?.pet?.type){
   return type==='cat' ? catSVG(stage, mood) : PETS[type].stages[stage];
 }
+
+/* ========== Notificaciones (Supabase + Web Push) ========== */
+const PUSH_URL = 'https://oqkprxynywejxhkftcjw.supabase.co/functions/v1/sync';
+const VAPID_PUBLIC = 'BMUVMgrQx4LfNUg1dLZAjpY6loGokj_h1hFaA4K23pusWT6toC-1S5UTY7mpfPN1VvE_1QU3tzWNkcOZlRh94YA';
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+function deviceId(){ if (!S.deviceId){ S.deviceId = crypto.randomUUID(); save(); } return S.deviceId; }
+function lastWorkoutDate(){ for (let i=0;i<400;i++){ const k=keyOf(addDays(new Date(),-i)); if (isDone(k)) return k; } return null; }
+function pushState(){
+  return { device_id: deviceId(), remind_hour: S.notif?.hour ?? 19, tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    last_workout: lastWorkoutDate(), skip_date: S.days[today()]?.freeze ? today() : null,
+    streak: streak(), pet_name: S.pet.name, enabled: !!S.notif?.on };
+}
+async function postPush(body){
+  const r = await fetch(PUSH_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function syncPush(){ if (S?.notif?.on) postPush(pushState()).catch(()=>{}); }
+function b64ToBytes(b){ const p='='.repeat((4-b.length%4)%4); const r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/')); return Uint8Array.from(r,c=>c.charCodeAt(0)); }
+async function enableNotifs(){
+  if (!pushSupported() || !isStandalone()) {
+    return alert('Para recibir notificaciones en iPhone:\n\n1. Abre la app en Safari\n2. Toca Compartir (□↑)\n3. "Agregar a pantalla de inicio"\n4. Abre la app desde ese ícono y activa aquí las notificaciones.\n\n(Necesitas iOS 16.4 o más nuevo)');
+  }
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return alert('No diste permiso. Puedes activarlo en Ajustes → Notificaciones → PersonalFit.');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64ToBytes(VAPID_PUBLIC)});
+    S.notif = {on:true, hour:S.notif?.hour ?? 19}; save();
+    await postPush({...pushState(), subscription: sub.toJSON()});
+    render(); alert('¡Listo! 🔔 Te avisaré a las '+S.notif.hour+':00 si no has entrenado.');
+  } catch (e) { alert('No se pudo activar: '+e.message); }
+}
+async function disableNotifs(){
+  S.notif = {...S.notif, on:false}; save();
+  postPush({device_id:deviceId(), enabled:false}).catch(()=>{}); render();
+}
+function setNotifHour(h){ S.notif = {...(S.notif||{}), hour:+h}; save(); syncPush(); }
+async function testNotif(){
+  try { const r = await postPush({...pushState(), test:true}); alert(r.ok ? 'Enviada 📨 Revisa tus notificaciones.' : 'Tu suscripción expiró, desactiva y vuelve a activar.'); }
+  catch(e){ alert('Error: '+e.message); }
+}
+function notifCard(){
+  const on = !!S.notif?.on, h = S.notif?.hour ?? 19;
+  return `<h2>Notificaciones 🔔</h2>
+  <div class="card">
+    <p class="small muted" style="margin-top:0">${esc(S.pet.name)} te avisa a tu hora si aún no entrenaste (no los domingos ni con comodín).</p>
+    <label class="field">Hora del recordatorio
+      <select onchange="setNotifHour(this.value)">${[...Array(24)].map((_,i)=>`<option value="${i}" ${i===h?'selected':''}>${pad(i)}:00</option>`).join('')}</select></label>
+    ${on ? `<div class="row gap"><button class="btn ghost" onclick="testNotif()">📨 Probar</button><button class="btn ghost" onclick="disableNotifs()">🔕 Desactivar</button></div>`
+         : `<button class="btn primary block" onclick="enableNotifs()">🔔 Activar notificaciones</button>`}
+  </div>`;
+}
+if (S) syncPush(); // al abrir la app, actualiza racha/último entreno en el servidor

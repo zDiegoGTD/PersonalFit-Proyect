@@ -130,3 +130,4 @@ input{width:100%;margin-top:6px;background:var(--card2);border:0;border-radius:1
 .cat .ear-r{animation:twitch 6s infinite;transform-origin:72px 40px}
 @keyframes twitch{0%,88%,100%{rotate:0deg}91%{rotate:12deg}94%{rotate:0deg}}
 .pet.sad .cat{filter:none}
+select{width:100%;margin-top:6px;background:var(--card2);border:0;border-radius:12px;padding:14px;font-size:1rem;color:var(--txt)}
