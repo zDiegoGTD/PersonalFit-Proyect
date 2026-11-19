@@ -121,9 +121,12 @@ input{width:100%;margin-top:6px;background:var(--card2);border:0;border-radius:1
 .grab{width:40px;height:5px;border-radius:9px;background:var(--card2);margin:0 auto 6px}
 @keyframes fade{from{opacity:0}}@keyframes up{from{transform:translateY(100%)}}
 .cat{overflow:visible;vertical-align:middle}
-.cat .tail{transform-origin:84px 100px;animation:tail 1.6s ease-in-out infinite}
-@keyframes tail{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(10deg)}}
-.cat .blink{transform-origin:60px 55px;animation:blink 4s infinite}
-@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
-.cat .ln{stroke:#2b2118;stroke-width:2.5;fill:none;stroke-linecap:round}
+.cat .tail{transform-origin:88px 104px;animation:tail 1.8s ease-in-out infinite}
+@keyframes tail{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}
+.cat .blink{transform-origin:60px 57px;animation:blink 4.5s infinite}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
+.cat .breathe{transform-origin:60px 112px;animation:breathe 3s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.025,.985)}}
+.cat .ear-r{animation:twitch 6s infinite;transform-origin:72px 40px}
+@keyframes twitch{0%,88%,100%{rotate:0deg}91%{rotate:12deg}94%{rotate:0deg}}
 .pet.sad .cat{filter:none}

@@ -482,41 +482,65 @@ function howTo(id){
   if (player) renderPlayer();
 }
 
-/* ========== Gatito dibujado (SVG animado) ========== */
+/* ========== Gatita calicó dibujada (SVG animado) ========== */
+var catUid = 0;
 function catSVG(stage=0, mood='happy'){
-  const big = [0.82,0.9,1,1][stage];
-  const eyes = mood==='sad'
-    ? `<path d="M45 55q5 4 10 0M65 55q5 4 10 0" class="ln"/><path d="M47 60q-1 6 1 8" stroke="#6cc4ff" stroke-width="2.5" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0;1;0" dur="2.5s" repeatCount="indefinite"/></path>`
-    : mood==='done'
-    ? `<path d="M44 56q6-7 12 0M64 56q6-7 12 0" class="ln"/>`
-    : `<g class="blink"><ellipse cx="50" cy="55" rx="5" ry="6.5" fill="#2b2118"/><ellipse cx="70" cy="55" rx="5" ry="6.5" fill="#2b2118"/>
-       <circle cx="52" cy="52.5" r="1.8" fill="#fff"/><circle cx="72" cy="52.5" r="1.8" fill="#fff"/></g>`;
-  const mouth = mood==='sad' ? `<path d="M55 71q5-4 10 0" class="ln"/>` : `<path d="M54 67q3 4 6 0q3 4 6 0" class="ln"/>`;
-  const earTilt = mood==='sad' ? 18 : 0;
+  const u = 'c'+(++catUid);
+  const sc = [0.8,0.88,0.95,1][stage];
+  const W='#fbf7f2', O='#e9964a', K='#4a3b33', L='#6b5a4e', LINE='#3a2c25';
+  const stripes = (x,y,n,dx,len,rot=0) => [...Array(n)].map((_,i)=>`<path d="M${x+i*dx} ${y}q2 ${len/2} 0 ${len}" stroke="${K}" stroke-width="2.6" fill="none" stroke-linecap="round" transform="rotate(${rot} ${x} ${y})"/>`).join('');
+  let eyes;
+  if (mood==='done') eyes = `<path d="M43 58q6-6 12 0M65 58q6-6 12 0" stroke="${LINE}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`;
+  else if (mood==='sad') eyes = `<path d="M43 57q6 4 12 1M65 58q6 3 12-1" stroke="${LINE}" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+     <path d="M45 61q-1.5 5 .5 8" stroke="#7cc8ff" stroke-width="2.6" fill="none" stroke-linecap="round"><animate attributeName="opacity" values="0;1;1;0" dur="2.6s" repeatCount="indefinite"/></path>`;
+  else eyes = `<g class="blink">
+     <ellipse cx="49" cy="57" rx="6" ry="7" fill="#7bb661"/><ellipse cx="71" cy="57" rx="6" ry="7" fill="#7bb661"/>
+     <ellipse cx="49" cy="57.5" rx="2.6" ry="5.6" fill="${LINE}"/><ellipse cx="71" cy="57.5" rx="2.6" ry="5.6" fill="${LINE}"/>
+     <circle cx="51" cy="54.5" r="1.9" fill="#fff"/><circle cx="73" cy="54.5" r="1.9" fill="#fff"/></g>`;
+  const mouth = mood==='sad' ? `<path d="M56 72q4-3 8 0" stroke="${LINE}" stroke-width="2" fill="none" stroke-linecap="round"/>`
+                             : `<path d="M60 67v2.5M55.5 69.5q2.2 3 4.5 0q2.3 3 4.5 0" stroke="${LINE}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  const droop = mood==='sad' ? 16 : 0;
   const acc = [
     '',
-    `<path d="M40 84q20 9 40 0l-3 7q-17 7-34 0z" fill="#e63946"/><circle cx="60" cy="89" r="3" fill="#ffd166"/>`,
-    `<path d="M40 84q20 9 40 0l-3 7q-17 7-34 0z" fill="#3a86ff"/><path d="M36 38q24-12 48 0l-1 5q-23-11-46 0z" fill="#ff6b2c"/>`,
-    `<path d="M40 84q20 9 40 0l-3 7q-17 7-34 0z" fill="#8338ec"/><path d="M45 26l5 9 10-12 10 12 5-9 -2 14h-26z" fill="#ffd166" stroke="#e0a800" stroke-width="1.5"/><circle cx="60" cy="27" r="2.5" fill="#e63946"/>`,
+    `<path d="M41 83q19 7 38 0" stroke="#ff7aa2" stroke-width="5" fill="none" stroke-linecap="round"/><circle cx="60" cy="88" r="3.6" fill="#ffd166" stroke="#d9a400"/>`,
+    `<path d="M41 83q19 7 38 0" stroke="#5aa9ff" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M72 30l9-6 1 10zM72 30l-2 11 9-2z" fill="#ff7aa2"/><circle cx="74" cy="32" r="2.4" fill="#ff4d85"/>`,
+    `<path d="M41 83q19 7 38 0" stroke="#a66bff" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M47 30l4-11 5 7 4-10 4 10 5-7 4 11z" fill="#ffd166" stroke="#d9a400" stroke-width="1.4" stroke-linejoin="round"/><circle cx="60" cy="22" r="2" fill="#ff4d85"/>`,
   ][stage];
-  return `<svg class="cat" viewBox="0 0 120 120" width="1em" height="1em" aria-label="Gatito">
-   <g transform="translate(60 112) scale(${big}) translate(-60 -112)">
-    <path class="tail" d="M84 100q22 0 20-24q-1-10 6-14" stroke="#f4a259" stroke-width="9" fill="none" stroke-linecap="round"/>
-    <ellipse cx="60" cy="98" rx="27" ry="17" fill="#f4a259"/>
-    <ellipse cx="60" cy="101" rx="15" ry="11" fill="#ffe3c4"/>
-    <ellipse cx="46" cy="112" rx="8" ry="5" fill="#f4a259"/><ellipse cx="74" cy="112" rx="8" ry="5" fill="#f4a259"/>
-    <g transform="rotate(${-earTilt} 42 40)"><path d="M33 50l4-28 20 16z" fill="#f4a259"/><path d="M38 44l2-14 10 9z" fill="#ffb4a2"/></g>
-    <g transform="rotate(${earTilt} 78 40)"><path d="M87 50l-4-28-20 16z" fill="#f4a259"/><path d="M82 44l-2-14-10 9z" fill="#ffb4a2"/></g>
-    <circle cx="60" cy="60" r="27" fill="#f4a259"/>
-    <path d="M60 33v9M52 35l2 7M68 35l-2 7" stroke="#d9823b" stroke-width="3" stroke-linecap="round"/>
-    <ellipse cx="60" cy="68" rx="13" ry="9" fill="#ffe3c4"/>
-    <circle cx="43" cy="66" r="4" fill="#ff9e9e" opacity=".55"/><circle cx="77" cy="66" r="4" fill="#ff9e9e" opacity=".55"/>
-    ${eyes}
-    <path d="M57 62h6l-3 3z" fill="#e5737a"/>
-    ${mouth}
-    <path d="M40 64h-12M40 68l-11 3M80 64h12M80 68l11 3" stroke="#7a5a3a" stroke-width="1.2" stroke-linecap="round"/>
-    ${acc}
-   </g></svg>`;
+  return `<svg class="cat" viewBox="0 0 120 120" width="1em" height="1em" aria-label="Gatita">
+  <defs>
+    <clipPath id="${u}h"><path d="M30 58q0-28 30-29q30 1 30 29q2 8-4 14l4 3-8 1q-8 9-22 9t-22-9l-8-1 4-3q-6-6-4-14z"/></clipPath>
+    <clipPath id="${u}b"><path d="M28 104q-4-30 32-32q36 2 32 32q0 9-32 9t-32-9z"/></clipPath>
+  </defs>
+  <g transform="translate(60 116) scale(${sc}) translate(-60 -116)">
+   <g class="tail"><path d="M88 104q24 2 24-18q0-12 8-16" stroke="${W}" stroke-width="12" fill="none" stroke-linecap="round"/>
+     <path d="M100 98q8-3 11-12M110 82q1-6 5-10" stroke="${K}" stroke-width="12" fill="none" stroke-linecap="round" opacity=".9"/>
+     <path d="M104 96l5 3M110 88l5 1M112 79l4-1" stroke="${O}" stroke-width="3" stroke-linecap="round"/></g>
+   <g class="breathe">
+    <path d="M28 104q-4-30 32-32q36 2 32 32q0 9-32 9t-32-9z" fill="${W}"/>
+    <g clip-path="url(#${u}b)">
+      <path d="M62 70q30-2 32 22q-12 4-20-6q-8-8-12-16z" fill="${O}"/>
+      <path d="M80 86q14 0 16 18l-10 6q-6-12-6-24z" fill="${L}"/>${stripes(82,90,3,4,10,-10)}
+      <path d="M24 92q8-10 16-6q-4 12-14 16z" fill="${L}"/>${stripes(27,92,2,5,8,20)}
+    </g>
+    <ellipse cx="46" cy="111" rx="8" ry="4.5" fill="${W}" stroke="#e8ddd2"/><ellipse cx="74" cy="111" rx="8" ry="4.5" fill="${W}" stroke="#e8ddd2"/>
+   </g>
+   <g transform="rotate(${-droop} 42 44)"><path d="M31 52l1-36 26 18z" fill="${O}"/><path d="M36 44l1-20 14 11z" fill="#f7b6b0"/><path d="M37 30l-4-5M41 33l-3-6" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></g>
+   <g transform="rotate(${droop} 78 44)"><g class="ear-r"><path d="M89 52l-1-36-26 18z" fill="${K}"/><path d="M84 44l-1-20-14 11z" fill="#f7b6b0"/><path d="M83 30l4-5M79 33l3-6" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></g></g>
+   <path d="M30 58q0-28 30-29q30 1 30 29q2 8-4 14l4 3-8 1q-8 9-22 9t-22-9l-8-1 4-3q-6-6-4-14z" fill="${W}"/>
+   <g clip-path="url(#${u}h)">
+     <path d="M26 26h34v12q-4 10-12 12q-8 1-10 10l-12 2z" fill="${O}"/>
+     <path d="M62 26h34v40q-8 0-12-6q-4-8-14-10q-6-6-8-24z" fill="${L}"/>
+     ${stripes(66,30,4,5,12,8)}${stripes(84,52,2,4,8,-30)}
+     <path d="M80 60q8 2 12 8l-6 6q-4-6-6-14z" fill="${O}"/>
+   </g>
+   <path d="M38 64q-2 4 0 8M82 64q2 4 0 8" stroke="#fff" stroke-width="1.5" opacity=".7"/>
+   ${eyes}
+   <ellipse cx="42" cy="66" rx="4.5" ry="2.6" fill="#ff9fb0" opacity=".55"/><ellipse cx="78" cy="66" rx="4.5" ry="2.6" fill="#ff9fb0" opacity=".55"/>
+   <path d="M57.5 63.5h5l-2.5 3z" fill="#f08a9a"/>
+   ${mouth}
+   <path d="M44 66l-14-2M44 69l-13 3M76 66l14-2M76 69l13 3" stroke="#b9aca0" stroke-width="1" stroke-linecap="round"/>
+   ${acc}
+  </g></svg>`;
 }
 function petArt(stage=petStage(), mood=petMood(), type=S?.pet?.type){
   return type==='cat' ? catSVG(stage, mood) : PETS[type].stages[stage];
